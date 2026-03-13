@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Admin Dashboard</h2>
+
+<h3>Add Question</h3>
+
+<input id="question" placeholder="Enter Question">
+
+<input id="op1" placeholder="Option 1">
+<input id="op2" placeholder="Option 2">
+<input id="op3" placeholder="Option 3">
+<input id="op4" placeholder="Option 4">
+
+<input id="answer" placeholder="Correct Option Number (0-3)">
+
+<button class="btn" onclick="addQuestion()">
+Add Question
+</button>
+
+<h3>View Results</h3>
+
+<button class="btn submit" onclick="loadResults()">
+Show Results
+</button>
+
+<div id="results"></div>
+
+</div>
+
+<script src="/js/dashboard.js"></script>
+
+</body>
+</html>
