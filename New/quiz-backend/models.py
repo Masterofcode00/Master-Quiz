@@ -40,5 +40,6 @@ class Result(Base):
     score     = Column(Integer, nullable=False)
     total     = Column(Integer, nullable=False)
     pct       = Column(Integer, nullable=False, default=0)
-    avg_time  = Column(String(10), nullable=True, default="")
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    avg_time   = Column(String(10), nullable=True, default="")
+    total_time = Column(String(20), nullable=True, default="")  # Total time taken for the quiz
+    timestamp  = Column(DateTime, default=lambda: datetime.now(timezone.utc))

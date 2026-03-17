@@ -5,7 +5,7 @@ Quiz Competition — FastAPI Backend
 ─────────────────────────────────────────────────────────────────
 
 Start the server:
-    uvicorn main:app --reload --host 0.0.0.0 --port 8000
+    uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 Interactive docs:
     http://localhost:8000/docs      (Swagger UI)
@@ -16,6 +16,8 @@ Interactive docs:
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+import uvicorn
+from fastapi import FastAPI
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -166,3 +168,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content={"detail": "Validation error", "errors": errors},
     )
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

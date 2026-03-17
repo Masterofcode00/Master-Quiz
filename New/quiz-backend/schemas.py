@@ -37,14 +37,28 @@ class QuestionOut(BaseModel):
         from_attributes = True
 
 
+class QuestionQuizOut(BaseModel):
+    """Secure version for the quiz page — no answer field."""
+    id: int
+    question: str
+    options: List[str]
+
+    class Config:
+        from_attributes = True
+
+
 # ── Results ─────────────────────────────────────────────────────
+class AnswerSubmission(BaseModel):
+    question_id: int
+    selected_index: Optional[int] = None
+
+
 class ResultCreate(BaseModel):
     name: str = Field(..., min_length=1)
     roll: str = ""
-    score: int = Field(..., ge=0)
-    total: int = Field(..., ge=1)
-    pct: int = Field(0, ge=0, le=100)
+    answers: List[AnswerSubmission]
     avgTime: Optional[str] = ""
+    totalTime: Optional[str] = ""
 
 
 class ResultOut(BaseModel):
@@ -54,6 +68,7 @@ class ResultOut(BaseModel):
     score: int
     total: int
     pct: int
+    totalTime: Optional[str] = ""
     timestamp: Optional[str] = None
 
     class Config:

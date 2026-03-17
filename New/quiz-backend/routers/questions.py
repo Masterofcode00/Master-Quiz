@@ -9,14 +9,14 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Question, User
-from schemas import QuestionCreate, QuestionOut
+from schemas import QuestionCreate, QuestionOut, QuestionQuizOut
 from auth import get_current_user
 
 router = APIRouter(prefix="/api/questions", tags=["questions"])
 
 
 def _to_out(q: Question) -> QuestionOut:
-    """Convert a Question ORM object to the frontend-friendly schema."""
+    """Convert a Question ORM object to the full response schema (with answers)."""
     return QuestionOut(
         id=q.id,
         question=q.question,
@@ -25,11 +25,20 @@ def _to_out(q: Question) -> QuestionOut:
     )
 
 
-@router.get("", response_model=List[QuestionOut])
+def _to_quiz_out(q: Question) -> QuestionQuizOut:
+    """Convert a Question ORM object to the secure quiz schema (no answers)."""
+    return QuestionQuizOut(
+        id=q.id,
+        question=q.question,
+        options=[q.option_a, q.option_b, q.option_c, q.option_d],
+    )
+
+
+@router.get("", response_model=List[QuestionQuizOut])
 def list_questions(db: Session = Depends(get_db)):
-    """Return all questions (public — used by quiz page)."""
+    """Return all questions for the quiz (secure — no answers revealed)."""
     rows = db.query(Question).order_by(Question.id).all()
-    return [_to_out(q) for q in rows]
+    return [_to_quiz_out(q) for q in rows]
 
 
 @router.post("", response_model=QuestionOut, status_code=status.HTTP_201_CREATED)
