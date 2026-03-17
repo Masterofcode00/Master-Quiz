@@ -421,7 +421,7 @@ body::before {
   transition:background 0.2s, color 0.2s, border-color 0.2s;
 }
 
-.opt-btn.selected { border-color:rgba(91,110,245,0.5); background:rgba(91,110,245,0.1); box-shadow:-4px 0 0 var(--indigo); }
+.opt-btn.selected { border-color:rgba(91,110,245,0.7); background:rgba(91,110,245,0.15); box-shadow:-4px 0 0 var(--indigo), 0 0 20px rgba(91,110,245,0.1); }
 .opt-btn.selected .opt-letter { background:var(--indigo); border-color:var(--indigo); color:#fff; }
 
 .opt-btn.correct { border-color:rgba(61,220,132,0.6)!important; background:var(--green-dim)!important; box-shadow:-4px 0 0 var(--green), 0 0 20px rgba(61,220,132,0.1)!important; }
@@ -444,6 +444,85 @@ body::before {
 .feedback-bar.show    { display:flex; }
 .feedback-bar.correct { background:var(--green-dim); border:1px solid rgba(61,220,132,0.2); color:var(--green); }
 .feedback-bar.wrong   { background:var(--red-dim);   border:1px solid rgba(255,79,107,0.2);  color:var(--red); }
+
+/* ── Completion Overlay ── */
+.completion-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.4s ease-out both;
+}
+
+.completion-overlay.fade-out {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.completion-content {
+  text-align: center;
+  padding: 2rem;
+  max-width: 400px;
+}
+
+.comp-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.comp-title {
+  font-family: var(--font-head);
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: var(--electric);
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(56, 217, 245, 0.4);
+}
+
+.comp-sub {
+  font-size: 0.85rem;
+  color: var(--text-2);
+  margin-bottom: 2rem;
+}
+
+.comp-loader {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.comp-loader-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--indigo), var(--electric));
+  animation: loadProgress 2s ease-in-out forwards;
+}
+
+.comp-status {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: var(--text-3);
+  letter-spacing: 0.15em;
+}
+
+@keyframes loadProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 /* ── Next button ── */
 .btn-next {

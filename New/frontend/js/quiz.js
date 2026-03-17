@@ -29,7 +29,8 @@ const State = {
   timerHandle: null,
   timeLeft:    CONFIG.timePerQuestion,
   startTime:   null,
-  timings:     [],   // seconds taken per question
+  timings:     [],     // seconds taken per question
+  responses:   [],     // [{question_id, selected_index}]
 };
 
 /* ────────────────────────────────────────────────
@@ -99,6 +100,9 @@ function buildShell() {
         </div>
       </div>
     </div>
+    <footer class="footer">
+      produced by : mr_varun325
+    </footer>
   `;
 
   showStageRegister();
@@ -156,6 +160,7 @@ async function startQuiz() {
   State.current = 0;
   State.score   = 0;
   State.timings = [];
+  State.responses = [];
   State.startTime = Date.now();
 
   setTimeout(() => showStageQuiz(), 500);
@@ -258,29 +263,21 @@ function chooseAnswer(index) {
   const timeTaken = CONFIG.timePerQuestion - State.timeLeft;
   State.timings.push(timeTaken);
 
-  const q       = State.questions[State.current];
-  const correct = q.answer;
+  const q  = State.questions[State.current];
+  State.responses.push({ question_id: q.id, selected_index: index });
+
   const btns    = document.querySelectorAll(".opt-btn");
   const fb      = document.getElementById("feedback-bar");
   const nextBtn = document.getElementById("btn-next");
 
   btns.forEach((btn, i) => {
     btn.disabled = true;
-    if (i === correct) btn.classList.add("correct");
-    else if (i === index && index !== correct) btn.classList.add("wrong");
+    if (i === index) btn.classList.add("selected");
   });
 
-  if (index === correct) {
-    State.score++;
-    if (fb) {
-      fb.textContent = "✓  Correct answer!";
-      fb.className = "feedback-bar show correct";
-    }
-  } else {
-    if (fb) {
-      fb.textContent = `✗  Correct answer was: ${q.options[correct]}`;
-      fb.className = "feedback-bar show wrong";
-    }
+  if (fb) {
+    fb.textContent = "✓  Answer recorded!";
+    fb.className = "feedback-bar show info";
   }
 
   if (nextBtn) {
@@ -289,7 +286,7 @@ function chooseAnswer(index) {
 
   // Auto-advance after delay
   if (CONFIG.showFeedback) {
-    setTimeout(() => nextQuestion(), CONFIG.feedbackDelay);
+    setTimeout(() => nextQuestion(), 800);
   }
 }
 
@@ -300,7 +297,7 @@ function nextQuestion() {
   clearTimer();
   State.current++;
   if (State.current >= State.questions.length) {
-    showStageResult();
+    showCompletionPopup();
   } else {
     renderQuestion();
   }
@@ -349,26 +346,25 @@ function clearTimer() {
 function timeOut() {
   if (State.answered) return;
   State.answered = true;
-  State.timings.push(CONFIG.timePerQuestion);
-
   const q   = State.questions[State.current];
+  State.responses.push({ question_id: q.id, selected_index: null });
+
   const btns = document.querySelectorAll(".opt-btn");
   const fb   = document.getElementById("feedback-bar");
   const next = document.getElementById("btn-next");
 
   btns.forEach((btn, i) => {
     btn.disabled = true;
-    if (i === q.answer) btn.classList.add("correct");
   });
 
   if (fb) {
-    fb.textContent = `⏱  Time's up! Correct answer: ${q.options[q.answer]}`;
-    fb.className = "feedback-bar show wrong";
+    fb.textContent = "⏱  Time's up!";
+    fb.className = "feedback-bar show info";
   }
   if (next) next.classList.add("show");
 
-  showToast("Time's up!", "error");
-  setTimeout(() => nextQuestion(), 1500);
+  showToast("Time's up!", "info");
+  setTimeout(() => nextQuestion(), 1000);
 }
 
 /* ────────────────────────────────────────────────
@@ -376,7 +372,41 @@ function timeOut() {
 ──────────────────────────────────────────────── */
 function submitQuiz() {
   clearTimer();
-  showStageResult();
+  showCompletionPopup();
+}
+
+/* ────────────────────────────────────────────────
+   STAGE: COMPLETION POPUP
+   Provides a visual bridge before the final results
+──────────────────────────────────────────────── */
+function showCompletionPopup() {
+  const wrapper = document.querySelector(".quiz-wrapper");
+  if (!wrapper) { showStageResult(); return; }
+
+  const popup = document.createElement("div");
+  popup.className = "completion-overlay";
+  popup.innerHTML = `
+    <div class="completion-content">
+      <div class="comp-icon">⚡</div>
+      <h2 class="comp-title">COMPLETED</h2>
+      <p class="comp-sub">Your attempt has been safely recorded.</p>
+      <div class="comp-loader">
+        <div class="comp-loader-fill"></div>
+      </div>
+      <p class="comp-status">Finalizing results...</p>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+
+  // Transition to results stage after a brief dramatic delay
+  setTimeout(() => {
+    popup.classList.add("fade-out");
+    setTimeout(() => {
+      popup.remove();
+      showStageResult();
+    }, 600);
+  }, 2200);
 }
 
 /* ────────────────────────────────────────────────
@@ -385,94 +415,55 @@ function submitQuiz() {
 function showStageResult() {
   clearTimer();
 
-  const total   = State.questions.length;
-  const score   = State.score;
-  const wrong   = total - score;
-  const pct     = Math.round((score / total) * 100);
   const avgTime = State.timings.length
     ? (State.timings.reduce((a,b)=>a+b,0) / State.timings.length).toFixed(1)
     : "—";
 
-  // Save result
+  // Save result — score and pct are now calculated by the backend
   STORE.saveResult({
     name:      State.player.name,
     roll:      State.player.roll,
-    score,
-    total,
-    pct,
+    answers:   State.responses,
     avgTime,
+    totalTime: ((Date.now() - State.startTime) / 60000).toFixed(1) + " min",
     timestamp: Date.now(),
   });
 
-  const grade =
-    pct === 100 ? { label: "Perfect Score! 🌟",  color: "var(--electric)" } :
-    pct >= 80   ? { label: "Excellent! 🔥",       color: "var(--green)" }   :
-    pct >= 60   ? { label: "Good Job! 👍",         color: "var(--indigo-light)" } :
-    pct >= 40   ? { label: "Keep Practising! 💪", color: "var(--amber)" }   :
-                  { label: "Try Again!",           color: "var(--red)" };
-
-  const circumference = 2 * Math.PI * 52; // r=52 → 326.7
-  const offset        = circumference * (1 - pct / 100);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString("en-IN", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
+  });
 
   const body = document.getElementById("card-body");
   body.innerHTML = `
     <div id="stage-result">
       <div class="result-hero">
 
-        <div class="result-circle">
-          <svg viewBox="0 0 120 120" width="130" height="130">
-            <circle class="r-track" cx="60" cy="60" r="52"/>
-            <circle class="r-fill"  cx="60" cy="60" r="52"
-              id="r-arc"
-              style="stroke:${grade.color}; transform:rotate(-90deg); transform-origin:60px 60px;"
-            />
-          </svg>
-          <div class="result-inner">
-            <span class="result-score-big" style="color:${grade.color}" id="score-counter">0</span>
-            <span class="result-score-sub">out of ${total}</span>
-          </div>
-        </div>
+        <h3 class="result-title" style="font-size: 2.5rem; margin-bottom: 1.5rem;">COMPLETED</h3>
+        
+        <p class="result-subtitle" style="font-family: var(--font-mono); font-size: 0.9rem; letter-spacing: 0.1em; color: var(--electric);">
+          Completion Time: ${timeStr}
+        </p>
 
-        <h3 class="result-title">${grade.label}</h3>
-        <p class="result-subtitle">${escHtml(State.player.name)} &nbsp;·&nbsp; Roll ${escHtml(State.player.roll)}</p>
+        <p class="result-subtitle" style="margin-top: 0.5rem; opacity: 0.7;">
+          ${escHtml(State.player.name)} &nbsp;·&nbsp; Roll ${escHtml(State.player.roll)}
+        </p>
 
-        <div class="result-stats">
-          <div class="rstat green">
-            <div class="rstat-val">${score}</div>
-            <div class="rstat-label">Correct</div>
-          </div>
-          <div class="rstat red">
-            <div class="rstat-val">${wrong}</div>
-            <div class="rstat-label">Wrong</div>
-          </div>
-          <div class="rstat amber">
-            <div class="rstat-val">${pct}%</div>
-            <div class="rstat-label">Score</div>
-          </div>
+        <div style="margin: 3rem 0;">
+           <p style="font-family: var(--font-mono); color: var(--text-dim); font-size: 0.8rem; letter-spacing: 0.2em;">
+             YOUR ATTEMPT HAS BEEN RECORDED
+           </p>
         </div>
 
         <div class="result-actions">
-          <button class="btn btn-retry" onclick="retryQuiz()">↺ &nbsp; Try Again</button>
-          <button class="btn btn-home"  onclick="location.href='index.html'">← Home</button>
+          <button class="btn btn-home" onclick="location.href='index.html'">← Home</button>
         </div>
 
       </div>
     </div>
   `;
 
-  // Animate arc
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      const arc = document.getElementById("r-arc");
-      if (arc) arc.style.strokeDashoffset = offset;
-    }, 100);
-  });
-
-  // Animate score counter
-  animateCount("score-counter", 0, score, 900);
-
-  // Confetti for passing scores
-  if (pct >= 60) launchConfetti(pct);
+  // No performance indicators (confetti/score) shown here as per neutral feedback requirements.
 }
 
 /* ────────────────────────────────────────────────

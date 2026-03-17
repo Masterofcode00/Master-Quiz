@@ -44,12 +44,30 @@ const STORE = {
       headers: authHeaders(),
       body: JSON.stringify(q),
     });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.detail || 'Failed to add question');
-    }
-    return await res.json();
-  },
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Failed to add question');
+      }
+      return await res.json();
+    },
+    async uploadQuestionBank(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+  
+      const headers = authHeaders();
+      delete headers['Content-Type']; // Let the browser set the boundary
+  
+      const res = await fetch('/api/questions/upload', {
+        method: 'POST',
+        headers: headers,
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Failed to upload question bank');
+      }
+      return await res.json();
+    },
   async deleteQuestion(id) {
     const res = await fetch(`/api/questions/${id}`, {
       method: 'DELETE',
@@ -133,7 +151,8 @@ function animateCount(el, target, suffix = "") {
   const startTs  = performance.now();
   function step(ts) {
     const pct = Math.min((ts - startTs) / duration, 1);
-    el.textContent = Math.round(start + (target - start) * easeOut(pct)) + suffix;
+    const val = start + (target - start) * easeOut(pct);
+    el.textContent = (isNaN(val) ? target : Math.round(val)) + suffix;
     if (pct < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -190,6 +209,29 @@ async function addQuestion() {
     await updateStats();
     await renderQuestionList();
     showToast(`✓ Question added successfully.`, "success");
+  } catch (err) {
+    showToast(`Error: ${err.message}`, "error");
+  }
+}
+
+/* ────────────────────────────────────────────────
+   UPLOAD QUESTION BANK (EXCEL/CSV)
+──────────────────────────────────────────────── */
+async function uploadFile() {
+  const fileInput = document.getElementById("bulk-upload-file");
+  if (!fileInput || !fileInput.files.length) {
+    showToast("⚠ Please select an Excel (.xlsx) or CSV file first.", "error");
+    return;
+  }
+  
+  const file = fileInput.files[0];
+  
+  try {
+    const response = await STORE.uploadQuestionBank(file);
+    fileInput.value = ""; // Clear file input
+    await updateStats();
+    await renderQuestionList();
+    showToast(`✓ ${response.message}`, "success");
   } catch (err) {
     showToast(`Error: ${err.message}`, "error");
   }
@@ -282,6 +324,7 @@ async function loadResults() {
         <td>${escapeHtml(r.name || "Anonymous")}</td>
         <td><span class="score-pill ${cls}">${r.score ?? "?"}/${r.total ?? "?"}</span></td>
         <td style="color:${pct>=80?"var(--accent)":pct>=50?"var(--gold)":"var(--danger)"};font-weight:600;">${pct}%</td>
+        <td style="color:var(--text-3);font-size:0.75rem;">${r.totalTime || "—"}</td>
         <td style="color:var(--text-3);font-size:0.72rem;">${date}</td>
       </tr>`;
   }).join("");
@@ -294,6 +337,7 @@ async function loadResults() {
           <th>Participant</th>
           <th>Score</th>
           <th>Pct</th>
+          <th>Time</th>
           <th>Date</th>
         </tr>
       </thead>
@@ -321,153 +365,9 @@ async function clearResults() {
 }
 
 /* ────────────────────────────────────────────────
-   BUILD THE DASHBOARD UI (replaces raw dashboard.html)
+   INITIALIZATION
 ──────────────────────────────────────────────── */
-function buildDashboard() {
-  document.body.innerHTML = `
-    <div class="dash-layout">
-
-      <!-- TOP BAR -->
-      <header class="topbar">
-        <div class="topbar-brand">
-          <span class="dot"></span>
-          Quiz Admin
-        </div>
-        <div class="topbar-meta">
-          SESSION ACTIVE &nbsp;·&nbsp; <span id="live-time">--:--:--</span>
-        </div>
-      </header>
-
-      <!-- SIDEBAR -->
-      <nav class="sidebar">
-        <div class="sidebar-label">Navigation</div>
-        <div class="sidebar-item active">
-          <span class="icon">⊞</span> Dashboard
-        </div>
-        <div class="sidebar-item" onclick="location.href='index.html'">
-          <span class="icon">⌂</span> Home
-        </div>
-        <div class="sidebar-item" onclick="location.href='quiz.html'">
-          <span class="icon">▶</span> Run Quiz
-        </div>
-        <div class="sidebar-label">Data</div>
-        <div class="sidebar-item" onclick="scrollTo(0, document.body.scrollHeight)">
-          <span class="icon">⊟</span> Questions
-          <span class="sidebar-badge" id="q-badge">0</span>
-        </div>
-        <div class="sidebar-item" onclick="loadResults()">
-          <span class="icon">◎</span> Results
-        </div>
-      </nav>
-
-      <!-- MAIN -->
-      <main class="main">
-
-        <!-- Stats row -->
-        <div class="stats-row">
-          <div class="stat-card green">
-            <div class="stat-label">Questions</div>
-            <div class="stat-value" id="stat-questions">0</div>
-            <div class="stat-sub">Stored in bank</div>
-          </div>
-          <div class="stat-card gold">
-            <div class="stat-label">Participants</div>
-            <div class="stat-value" id="stat-results">0</div>
-            <div class="stat-sub">Completed quiz</div>
-          </div>
-          <div class="stat-card danger">
-            <div class="stat-label">Avg Score</div>
-            <div class="stat-value" id="stat-avg">—</div>
-            <div class="stat-sub">Across all runs</div>
-          </div>
-        </div>
-
-        <!-- Panel Grid -->
-        <div class="panel-grid">
-
-          <!-- Add Question Panel -->
-          <div class="panel">
-            <div class="panel-head">
-              <span class="panel-head-title">Add Question</span>
-              <span class="panel-head-icon">✚</span>
-            </div>
-            <div class="panel-body">
-
-              <div class="field-group">
-                <label class="field-label">Question</label>
-                <input id="question" class="field-input" placeholder="Type the question…" autocomplete="off">
-              </div>
-
-              <div class="options-grid">
-                <div class="option-wrap">
-                  <span class="option-badge">A</span>
-                  <input id="op1" class="field-input" placeholder="Option A">
-                </div>
-                <div class="option-wrap">
-                  <span class="option-badge">B</span>
-                  <input id="op2" class="field-input" placeholder="Option B">
-                </div>
-                <div class="option-wrap">
-                  <span class="option-badge">C</span>
-                  <input id="op3" class="field-input" placeholder="Option C">
-                </div>
-                <div class="option-wrap">
-                  <span class="option-badge">D</span>
-                  <input id="op4" class="field-input" placeholder="Option D">
-                </div>
-              </div>
-
-              <div class="field-label" style="margin-bottom:0.5rem;">Correct Answer</div>
-              <div class="answer-picker">
-                <div class="answer-opt" onclick="selectAnswer(0)">A</div>
-                <div class="answer-opt" onclick="selectAnswer(1)">B</div>
-                <div class="answer-opt" onclick="selectAnswer(2)">C</div>
-                <div class="answer-opt" onclick="selectAnswer(3)">D</div>
-              </div>
-              <input type="hidden" id="answer">
-
-              <button class="btn btn-primary" onclick="addQuestion()">+ &nbsp; Add Question</button>
-            </div>
-          </div>
-
-          <!-- Question List Panel -->
-          <div class="panel">
-            <div class="panel-head">
-              <span class="panel-head-title">Question Bank</span>
-              <span class="panel-head-icon">☰</span>
-            </div>
-            <div class="panel-body">
-              <div class="q-list" id="question-list"></div>
-            </div>
-          </div>
-
-        </div><!-- /panel-grid -->
-
-        <!-- Results Panel -->
-        <div class="panel" style="margin-top:1.5rem;">
-          <div class="panel-head">
-            <span class="panel-head-title">Participant Results</span>
-            <div style="display:flex;gap:0.6rem;">
-              <button class="btn btn-ghost" style="width:auto;padding:0.3rem 0.9rem;font-size:0.72rem;" onclick="clearResults()">Clear</button>
-              <button class="btn btn-submit" style="width:auto;padding:0.3rem 0.9rem;font-size:0.72rem;" onclick="loadResults()">⟳ &nbsp;Refresh</button>
-            </div>
-          </div>
-          <div class="panel-body" style="padding-top:0.8rem;">
-            <div id="results">
-              <div class="results-empty">
-                <span class="empty-icon">📋</span>
-                Click Refresh to load results.
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </main><!-- /main -->
-    </div><!-- /dash-layout -->
-
-    <div class="toast"></div>
-  `;
-
+function initDashboard() {
   // Init everything
   startClock();
   updateStats();
@@ -530,11 +430,12 @@ window.deleteQuestion = deleteQuestion;
 window.loadResults    = loadResults;
 window.clearResults   = clearResults;
 window.selectAnswer   = selectAnswer;
+window.uploadFile     = uploadFile;
 window.showToast      = showToast;
 
 // Boot on DOM ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", buildDashboard);
+  document.addEventListener("DOMContentLoaded", initDashboard);
 } else {
-  buildDashboard();
+  initDashboard();
 }
