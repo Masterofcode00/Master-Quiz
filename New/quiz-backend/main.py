@@ -42,8 +42,12 @@ def seed_users():
     """Create default admin / invigilator / teacher users if they don't exist."""
     db = SessionLocal()
     try:
+        # Fetch admin credentials from environment variables with defaults
+        admin_user = os.getenv("ADMIN_USERNAME", "admin")
+        admin_pass = os.getenv("ADMIN_PASSWORD", "admin@2024")
+        
         defaults = [
-            {"username": "admin",       "password": "admin@2024",  "role": "admin"},
+            {"username": admin_user,   "password": admin_pass,     "role": "admin"},
             {"username": "invigilator", "password": "inv@2024",    "role": "invigilator"},
             {"username": "teacher",     "password": "teach@123",   "role": "invigilator"},
         ]
@@ -58,6 +62,11 @@ def seed_users():
                 )
                 db.add(new_user)
                 print(f"  -> Seeded user: {u['username']} ({u['role']})")
+            elif u["role"] == "admin":
+                # Optionally update admin password if it's explicitly set via env
+                if os.getenv("ADMIN_PASSWORD"):
+                    existing.password_hash = hash_password(admin_pass)
+                    print(f"  -> Updated admin password for: {admin_user}")
         db.commit()
     finally:
         db.close()
