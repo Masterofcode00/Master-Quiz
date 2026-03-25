@@ -1,0 +1,82 @@
+# Quiz Competition — Walkthrough
+
+## What Was Built
+
+A complete **FastAPI backend** that powers your existing frontend, replacing all `localStorage` usage with real API calls and a SQLite database.
+
+### Architecture
+
+```mermaid
+graph LR
+    A[Browser] -->|GET /| B[FastAPI Server :8000]
+    B -->|Static Files| C[frontend/ HTML+CSS+JS]
+    A -->|POST /api/auth/login| D[Auth Router]
+    A -->|GET/POST/DELETE /api/questions| E[Questions Router]
+    A -->|GET/POST/DELETE /api/results| F[Results Router]
+    D --> G[(SQLite DB)]
+    E --> G
+    F --> G
+```
+
+---
+
+## Pages in Action
+
+````carousel
+![Invigilator Login — JWT authentication via /api/auth/login](C:\Users\Varun Kumar\.gemini\antigravity\brain\fff4411b-330e-4869-bfaa-fb722735032d\login_page.png)
+<!-- slide -->
+![Admin Dashboard — Add questions via /api/questions](C:\Users\Varun Kumar\.gemini\antigravity\brain\fff4411b-330e-4869-bfaa-fb722735032d\dashboard.png)
+<!-- slide -->
+![Quiz Page — Fetches questions from API, submits results](C:\Users\Varun Kumar\.gemini\antigravity\brain\fff4411b-330e-4869-bfaa-fb722735032d\quiz_page.png)
+````
+
+---
+
+## Files Changed
+
+### Backend (New/Rewritten)
+
+| File | Purpose |
+|------|---------|
+| [database.py](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/quiz-backend/database.py) | SQLAlchemy engine + SQLite |
+| [models.py](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/quiz-backend/models.py) | User, Question, Result ORM models |
+| [schemas.py](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/quiz-backend/schemas.py) | Pydantic request/response schemas |
+| [main.py](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/quiz-backend/main.py) | App setup, static file serving, user seeding |
+| [auth.py](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/quiz-backend/auth.py) | Password hashing + JWT |
+| [routers/auth.py](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/quiz-backend/routers/auth.py) | POST /api/auth/login |
+| [routers/questions.py](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/quiz-backend/routers/questions.py) | GET/POST/DELETE /api/questions |
+| [routers/results.py](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/quiz-backend/routers/results.py) | GET/POST/DELETE /api/results |
+
+### Frontend (Modified)
+
+| File | Change |
+|------|--------|
+| All 4 [.html](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/frontend/quiz.html) files | Fixed asset paths (`/css/...`, `/js/...`) |
+| [quiz.js](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/frontend/js/quiz.js) | STORE → `fetch('/api/questions')`, results → `POST /api/results` |
+| [invigilator.js](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/frontend/js/invigilator.js) | Login → `POST /api/auth/login`, JWT stored in sessionStorage |
+| [dashboard.js](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/frontend/js/dashboard.js) | All CRUD → API with auth headers |
+| [sccript.js](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/New/frontend/js/sccript.js) | STORE → API fetch calls |
+
+---
+
+## How to Run
+
+```bash
+cd quiz-backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+Open **http://localhost:8000** in your browser.
+
+## Default Credentials
+
+| Username | Password | Role |
+|----------|----------|------|
+| admin | admin@2024 | admin |
+| invigilator | inv@2024 | invigilator |
+| teacher | teach@123 | invigilator |
+
+## API Docs
+
+Interactive Swagger docs at **http://localhost:8000/docs**

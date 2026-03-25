@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: master-quiz
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd New/quiz-backend && gunicorn main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: PYTHONPATH
+        value: .
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        value: admin@2024

@@ -1,0 +1,42 @@
+# Goal Description
+Add the ability to bulk upload a question bank via Excel or CSV on the Admin Dashboard. 
+
+## User Review Required
+> [!WARNING]
+> While you asked for **PDF or Excel**, I strongly recommend sticking to **Excel (.xlsx) or CSV** formats for now. PDF files are unstructured documents meant for reading, not for data extraction. Extracting Questions, 4 Options, and the Correct Answer reliably from a PDF is very error-prone. Excel and CSV files are structured into rows and columns, guaranteeing 100% accurate data imports. 
+> 
+> My plan below implements Excel/CSV upload. It will expect the Excel file to have columns like [Question](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/master%20quiz/Master-Quiz/New/frontend/js/dashboard.js#159-197), `Option A`, `Option B`, `Option C`, `Option D`, and `Correct Answer` (A, B, C, or D).
+> Please confirm if this approach works for you!
+
+## Proposed Changes
+
+### Backend Dependencies
+Update the Python environment requirements to handle file uploads and Excel files.
+#### [MODIFY] [requirements.txt](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/master%20quiz/Master-Quiz/New/quiz-backend/requirements.txt)
+- Add `python-multipart` (required by FastAPI for file uploads).
+- Add `pandas` and `openpyxl` (to securely parse Excel and CSV files).
+
+### Backend Routes
+#### [MODIFY] [routers/questions.py](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/master%20quiz/Master-Quiz/New/quiz-backend/routers/questions.py)
+- Create a new endpoint `POST /api/questions/upload`.
+- This endpoint will take an `UploadFile`, read its contents into a Pandas DataFrame, validate the required columns, and bulk-insert the new Question records into the database.
+
+### Frontend Dashboard
+#### [MODIFY] [dashboard.html](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/master%20quiz/Master-Quiz/New/frontend/dashboard.html)
+- Add a new HTML block or modify the JavaScript string template inside [dashboard.js](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/master%20quiz/Master-Quiz/New/frontend/js/dashboard.js) to include a new section for "Bulk Upload" with an `<input type="file">` element.
+
+#### [MODIFY] [js/dashboard.js](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/master%20quiz/Master-Quiz/New/frontend/js/dashboard.js)
+- Add a new UI block in [buildDashboard()](file:///c:/Users/Varun%20Kumar/OneDrive/Desktop/master%20quiz/Master-Quiz/New/frontend/js/dashboard.js#323-489) for uploading files.
+- Add an `uploadQuestionBank()` function that constructs a `FormData` object with the selected file and sends an authenticated POST request to the new `/api/questions/upload` endpoint.
+- Handle success/error feedback (Toasts) and refresh the question list automatically upon successful upload.
+
+## Verification Plan
+
+### Automated Tests
+- No automated test suite currently exists in the backend for this feature, but we can verify the API route manually.
+
+### Manual Verification
+1. I will start the FastAPI backend.
+2. I will create a sample `questions.xlsx` file with valid columns.
+3. I will test the frontend form by selecting the `questions.xlsx` file and uploading it.
+4. I will verify that the new questions appear in the **Question Bank** panel and the total questions count increases.

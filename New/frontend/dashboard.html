@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body>
+
+  <div class="dash-layout">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <span class="dot"></span>
+        Quiz Admin
+      </div>
+      <div class="topbar-meta">
+        SESSION ACTIVE &nbsp;·&nbsp; <span id="live-time">--:--:--</span>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-label">Navigation</div>
+      <div class="sidebar-item active">
+        <span class="icon">⊞</span> Dashboard
+      </div>
+      <div class="sidebar-item" onclick="location.href='index.html'">
+        <span class="icon">⌂</span> Home
+      </div>
+      <div class="sidebar-item" onclick="location.href='quiz.html'">
+        <span class="icon">▶</span> Run Quiz
+      </div>
+      <div class="sidebar-label">Data</div>
+      <div class="sidebar-item" onclick="scrollTo(0, document.body.scrollHeight)">
+        <span class="icon">⊟</span> Questions
+        <span class="sidebar-badge" id="q-badge">0</span>
+      </div>
+      <div class="sidebar-item" onclick="loadResults()">
+        <span class="icon">◎</span> Results
+      </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- Stats row -->
+      <div class="stats-row">
+        <div class="stat-card green">
+          <div class="stat-label">Questions</div>
+          <div class="stat-value" id="stat-questions">0</div>
+          <div class="stat-sub">Stored in bank</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-label">Participants</div>
+          <div class="stat-value" id="stat-results">0</div>
+          <div class="stat-sub">Completed quiz</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-label">Avg Score</div>
+          <div class="stat-value" id="stat-avg">—</div>
+          <div class="stat-sub">Across all runs</div>
+        </div>
+      </div>
+
+      <!-- Panel Grid -->
+      <div class="panel-grid">
+
+        <!-- Add Question Panel -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-head-title">Add / Upload Questions</span>
+            <span class="panel-head-icon">✚</span>
+          </div>
+          <div class="panel-body">
+
+            <!-- Bulk Upload Section -->
+            <div class="field-label"
+              style="margin-bottom:0.5rem; border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+              <span>Bulk Upload (.xlsx, .csv)</span>
+              <span class="tooltip"
+                title="Expected columns:\nQuestion | Option A | Option B | Option C | Option D | Answer (A-D)">❓</span>
+            </div>
+            <div style="display:flex;gap:0.6rem;margin-bottom: 1.5rem;">
+              <input type="file" id="bulk-upload-file" accept=".xlsx,.csv" class="field-input"
+                style="flex:1; padding-top: 0.6rem;">
+              <button class="btn btn-submit" style="white-space:nowrap;" onclick="uploadFile()">Upload File</button>
+            </div>
+
+            <div class="field-label"
+              style="margin-bottom:1rem; border-top: 1px solid var(--border); padding-top: 1rem; color: var(--text-2);">
+              Or Add Single Question Manually:</div>
+
+            <div class="field-group">
+              <label class="field-label">Question</label>
+              <input id="question" class="field-input" placeholder="Type the question…" autocomplete="off">
+            </div>
+
+            <div class="options-grid">
+              <div class="option-wrap">
+                <span class="option-badge">A</span>
+                <input id="op1" class="field-input" placeholder="Option A">
+              </div>
+              <div class="option-wrap">
+                <span class="option-badge">B</span>
+                <input id="op2" class="field-input" placeholder="Option B">
+              </div>
+              <div class="option-wrap">
+                <span class="option-badge">C</span>
+                <input id="op3" class="field-input" placeholder="Option C">
+              </div>
+              <div class="option-wrap">
+                <span class="option-badge">D</span>
+                <input id="op4" class="field-input" placeholder="Option D">
+              </div>
+            </div>
+
+            <div class="field-label" style="margin-bottom:0.5rem;">Correct Answer</div>
+            <div class="answer-picker">
+              <div class="answer-opt" onclick="selectAnswer(0)">A</div>
+              <div class="answer-opt" onclick="selectAnswer(1)">B</div>
+              <div class="answer-opt" onclick="selectAnswer(2)">C</div>
+              <div class="answer-opt" onclick="selectAnswer(3)">D</div>
+            </div>
+            <input type="hidden" id="answer">
+
+            <button class="btn btn-primary" onclick="addQuestion()">+ &nbsp; Add Question</button>
+          </div>
+        </div>
+
+        <!-- Question List Panel -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-head-title">Question Bank</span>
+            <span class="panel-head-icon">☰</span>
+          </div>
+          <div class="panel-body">
+            <div class="q-list" id="question-list"></div>
+          </div>
+        </div>
+
+      </div><!-- /panel-grid -->
+
+      <!-- Results Panel -->
+      <div class="panel" style="margin-top:1.5rem;">
+        <div class="panel-head">
+          <span class="panel-head-title">Participant Results</span>
+          <div style="display:flex;gap:0.6rem;">
+            <button class="btn btn-ghost" style="width:auto;padding:0.3rem 0.9rem;font-size:0.72rem;"
+              onclick="clearResults()">Clear</button>
+            <button class="btn btn-submit" style="width:auto;padding:0.3rem 0.9rem;font-size:0.72rem;"
+              onclick="loadResults()">⟳ &nbsp;Refresh</button>
+          </div>
+        </div>
+        <div class="panel-body" style="padding-top:0.8rem;">
+          <div id="results">
+            <div class="results-empty">
+              <span class="empty-icon">📋</span>
+              Click Refresh to load results.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main><!-- /main -->
+  </div><!-- /dash-layout -->
+
+  <footer class="footer">
+      produced by : mr_varun325
+  </footer>
+  <div class="toast"></div>
+
+  <!-- Note the v=2 to bypass caching -->
+  <script src="/js/dashboard.js?v=2"></script>
+</body>
+
+</html>
